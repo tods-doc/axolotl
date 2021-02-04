@@ -1,4 +1,6 @@
 import uuid
+import os
+import pathlib
 import numpy
 import pandas as pd
 from d3m.container import pandas as container_pandas
@@ -7,6 +9,7 @@ from d3m.metadata import base as metadata_base
 from d3m.metadata.problem import Problem
 
 from axolotl.utils.schemas import PROBLEM_DEFINITION
+
 
 def make_unique_columns(data):
     """
@@ -33,7 +36,7 @@ def make_unique_columns(data):
     return data
 
 
-def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=None, parse=False, media=None, path_index=None):
+def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=None, parse=False, media_dir=None):
     """
     A function that has as input a dataframe, and generates a D3M dataset.
 
@@ -51,10 +54,8 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
     parse :
         A flag to determine if the dataset will contain parsed columns. By default is set to fault
         to make it compatible with most of D3M current infrastructure.
-    media : str
-        The path of the directory containing the image/video/csv files, if not present, it will be ignored
-    path_index : int
-        The index of the column containing filename of image/video/csv files, if index is not present, it will be ignored.
+    media_dir : str
+        The absolute path of the directory containing the image/video/csv files, if not present, it will be ignored
 
     Returns
     -------
@@ -81,7 +82,6 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
             index_column = 0
 
     data = container_pandas.DataFrame(data)
-    
 
     # remove this
     if not parse:
@@ -89,7 +89,7 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
     metadata = metadata_base.DataMetadata()
 
     resources['learningData'] = data
-    
+
     metadata = metadata.update(('learningData',), {
         'structural_type': type(data),
         'semantic_types': [
@@ -139,29 +139,35 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
             else:
                 _semantic_types += ['https://metadata.datadrivendiscovery.org/types/Attribute']
 
-            metadata = metadata.update(('learningData', metadata_base.ALL_ELEMENTS, i), {
-                'name': column_name,
-                'structural_type': _structural_type,
-                'semantic_types': _semantic_types
-            })
-            
-            
-        #TODO: Check Code
-        if path_index is not None:
-            if i == path_index:
-                if media is not None:
-                
-                    
-                    if media[-1] != '/':
-                        media = media + '/'
-                    col = data.columns[path_index]
-                    data[str(col)] = media + data[str(col)] # check if the below one now handles missing /
-                    
-                
+            # Add media dir if any
+            if media_dir is not None or i != target_index:
+                # Check the type of the first path
+                first_file_path = data.iloc[0, i]
+                suffix = first_file_path.split('.')[-1]
+                if suffix in ['png', 'jpg']:
+                    media_type = 'image'
+                elif suffix in ['mp4', 'avi']:
+                    media_type = 'video'
                 else:
-                    raise ValueError('Media path and path index should be provided')
+                    media_type = 'table'
 
-    
+                _semantic_types += ["https://metadata.datadrivendiscovery.org/types/FileName"]
+                metadata = metadata.update(('learningData', metadata_base.ALL_ELEMENTS, i), {
+                    'name': column_name,
+                    'structural_type': str,
+                    'semantic_types': _semantic_types,
+                    "location_base_uris": [pathlib.Path(media_dir).as_uri()+'/'],
+                    "media_types": [
+                        media_type+"/"+suffix
+                    ],
+                })
+            else:
+                metadata = metadata.update(('learningData', metadata_base.ALL_ELEMENTS, i), {
+                    'name': column_name,
+                    'structural_type': _structural_type,
+                    'semantic_types': _semantic_types,
+                })
+
     dataset_id = str(uuid.uuid4())
     dataset_metadata = {
         'schema': metadata_base.CONTAINER_SCHEMA_VERSION,
@@ -173,7 +179,6 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
             'name': 'resources',
             'semantic_types': ['https://metadata.datadrivendiscovery.org/types/DatasetResource'],
             'length': len(resources),
-        
         },
     }
 
@@ -183,7 +188,7 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
     return dataset
 
 
-def import_dataframe(data_frame, *, index_column=-1, semantic_types=None, media=None, path_index=None):
+def import_dataframe(data_frame, *, index_column=-1, semantic_types=None):
     """
     Function that transforms a dataframe into a dataset.
 
@@ -194,19 +199,16 @@ def import_dataframe(data_frame, *, index_column=-1, semantic_types=None, media=
     semantic_types : Sequence[Sequence[str]]
         A list of semantic types to be applied. The sequence must be of the same length of
         the dataframe columns.
-    media : str
-        The path of the directory containing the image/video/csv files, if not present, it will be ignored
-    path_index : int
-        The index of the column containing filename of image/video/csv files, if index is not present, it will be ignored.
+
     Returns
     -------
     A D3M dataset.
     """
-    data = get_dataset(input_data=data_frame, index_column=index_column, semantic_types=semantic_types, media=media, path_index=path_index)
+    data = get_dataset(input_data=data_frame, index_column=index_column, semantic_types=semantic_types)
     return data
 
 
-def import_input_data(x, y=None, *, target_index=None, index_column=-1, semantic_types=None, parse=False, media=None, path_index=None):
+def import_input_data(x, y=None, *, target_index=None, index_column=-1, semantic_types=None, parse=False, media_dir=None):
     """
     Function that takes an np.array or a dataframe and convert them to a D3M dataset.
 
@@ -224,10 +226,9 @@ def import_input_data(x, y=None, *, target_index=None, index_column=-1, semantic
     parse :
         A flag to determine if the dataset will contain parsed columns. By default is set to fault
         to make it compatible with most of D3M current infrastructure.
-    media : str
-        The path of the directory containing the image/video/csv files, if not present, it will be ignored
-    path_index : int
-        The index of the column containing filename of image/video/csv files, if index is not present, it will be ignored.
+    media_dir : str
+        The absolute path of the directory containing the image/video/csv files, if not present, it will be ignored
+
     Returns
     -------
     A D3M dataset.
@@ -250,7 +251,7 @@ def import_input_data(x, y=None, *, target_index=None, index_column=-1, semantic
     if _target_index != -1:
         target_index = _target_index
     data = get_dataset(input_data=input_data, target_index=target_index,
-                       index_column=index_column, semantic_types=semantic_types, parse=parse, media=media, path_index=path_index)
+                       index_column=index_column, semantic_types=semantic_types, parse=parse, media_dir=media_dir)
 
     return data
 
@@ -327,7 +328,7 @@ def generate_problem_description(dataset, task=None, *, task_keywords=None, perf
 
 
 def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_column=-1,
-                             semantic_types=None, parse=False, task_keywords=None, performance_metrics=None, media=None, path_index=None):
+                             semantic_types=None, parse=False, task_keywords=None, performance_metrics=None):
     """
     Function that takes an np.array or a dataframe and convert them to a D3M dataset.
 
@@ -352,10 +353,7 @@ def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_c
         A list of TaskKeyword.
     performance_metrics: List[PerformanceMetric]
         A list of PerformanceMetric.
-    media : str
-        The path of the directory containing the image/video/csv files, if not present, it will be ignored
-    path_index : int
-        The index of the column containing filename of image/video/csv files, if index is not present, it will be ignored.
+
     Returns
     -------
     dataset : Dataset
@@ -364,7 +362,7 @@ def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_c
         A D3M problem.
     """
     dataset = import_input_data(x, y=y, target_index=target_index, index_column=index_column,
-                                semantic_types=semantic_types, parse=parse, media=media, path_index=path_index)
+                                semantic_types=semantic_types, parse=parse)
     problem_description = generate_problem_description(dataset=dataset, task=task, task_keywords=task_keywords,
                                                        performance_metrics=performance_metrics)
 
