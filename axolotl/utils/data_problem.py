@@ -188,7 +188,7 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
     return dataset
 
 
-def import_dataframe(data_frame, *, index_column=-1, semantic_types=None):
+def import_dataframe(data_frame, *, index_column=-1, semantic_types=None, media_dir=None):
     """
     Function that transforms a dataframe into a dataset.
 
@@ -199,12 +199,14 @@ def import_dataframe(data_frame, *, index_column=-1, semantic_types=None):
     semantic_types : Sequence[Sequence[str]]
         A list of semantic types to be applied. The sequence must be of the same length of
         the dataframe columns.
+    media_dir : str
+        The absolute path of the directory containing the image/video/csv files, if not present, it will be ignored
 
     Returns
     -------
     A D3M dataset.
     """
-    data = get_dataset(input_data=data_frame, index_column=index_column, semantic_types=semantic_types)
+    data = get_dataset(input_data=data_frame, index_column=index_column, semantic_types=semantic_types, media_dir=media_dir)
     return data
 
 
@@ -328,7 +330,7 @@ def generate_problem_description(dataset, task=None, *, task_keywords=None, perf
 
 
 def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_column=-1,
-                             semantic_types=None, parse=False, task_keywords=None, performance_metrics=None):
+                             semantic_types=None, parse=False, task_keywords=None, performance_metrics=None, media_dir=None):
     """
     Function that takes an np.array or a dataframe and convert them to a D3M dataset.
 
@@ -353,6 +355,8 @@ def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_c
         A list of TaskKeyword.
     performance_metrics: List[PerformanceMetric]
         A list of PerformanceMetric.
+    media_dir : str
+        The absolute path of the directory containing the image/video/csv files, if not present, it will be ignored
 
     Returns
     -------
@@ -362,7 +366,7 @@ def generate_dataset_problem(x, y=None, task=None, *, target_index=None, index_c
         A D3M problem.
     """
     dataset = import_input_data(x, y=y, target_index=target_index, index_column=index_column,
-                                semantic_types=semantic_types, parse=parse)
+                                semantic_types=semantic_types, parse=parse, media_dir=media_dir)
     problem_description = generate_problem_description(dataset=dataset, task=task, task_keywords=task_keywords,
                                                        performance_metrics=performance_metrics)
 
