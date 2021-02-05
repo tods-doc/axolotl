@@ -140,7 +140,7 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
                 _semantic_types += ['https://metadata.datadrivendiscovery.org/types/Attribute']
 
             # Add media dir if any
-            if media_dir is not None or i != target_index:
+            if media_dir is not None and i != target_index:
                 # Check the type of the first path
                 first_file_path = data.iloc[0, i]
                 suffix = first_file_path.split('.')[-1]
