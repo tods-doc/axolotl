@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 import subprocess
 
-PACKAGE_NAME = 'axolotl'
+PACKAGE_NAME = 'tamu_axolotl'
 MINIMUM_PYTHON_VERSION = 3, 6
 
 
