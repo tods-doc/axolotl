@@ -39,7 +39,7 @@ setup(
           'License :: OSI Approved :: Apache Software License',
     ],
     install_requires=[
-        'd3m',
+        'tamu_d3m',
         'grpcio',
         'grpcio-tools',
         'grpcio-testing',
