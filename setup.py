@@ -16,7 +16,7 @@ def check_python_version():
 
 def read_package_variable(key):
     """Read the value of a variable from the package without importing."""
-    module_path = os.path.join(PACKAGE_NAME, '__init__.py')
+    module_path = os.path.join("axolotl", '__init__.py')
     with open(module_path) as module:
         for line in module:
             parts = line.strip().split(' ')
@@ -38,6 +38,7 @@ setup(
     classifiers=[
           'License :: OSI Approved :: Apache Software License',
     ],
+    package_data={'axolotl': ['utils/resources/*.json']},
     install_requires=[
         'tamu_d3m',
         'grpcio',
