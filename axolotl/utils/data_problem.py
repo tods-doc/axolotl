@@ -149,7 +149,7 @@ def get_dataset(input_data, target_index=-2, index_column=-1, semantic_types=Non
                 elif suffix in ['mp4', 'avi']:
                     media_type = 'video'
                 else:
-                    media_type = 'table'
+                    media_type = 'text'
 
                 _semantic_types += ["https://metadata.datadrivendiscovery.org/types/FileName"]
                 metadata = metadata.update(('learningData', metadata_base.ALL_ELEMENTS, i), {
