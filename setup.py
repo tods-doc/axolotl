@@ -38,7 +38,7 @@ setup(
     classifiers=[
           'License :: OSI Approved :: Apache Software License',
     ],
-    package_data={'axolotl': ['utils/resources/*.json']},
+    package_data={'axolotl': ['utils/resources/*.json', 'utils/resources/*.yml']},
     install_requires=[
         'tamu_d3m',
         'grpcio',
