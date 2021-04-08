@@ -44,8 +44,8 @@ setup(
         'grpcio',
         'grpcio-tools',
         'grpcio-testing',
-        'ray',
-        'networkx',
+        'ray<=1.0.1.post1',
+        'networkx==2.4',
     ],
     extras_require={
         'cpu': ['tensorflow==2.2.0'],
